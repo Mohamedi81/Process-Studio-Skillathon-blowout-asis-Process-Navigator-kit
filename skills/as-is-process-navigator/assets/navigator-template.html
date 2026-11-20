@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>As-Is Process Navigator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f4f5f7; color: #172b4d; font-size: 13px; }
+button, select, input { font-family: inherit; }
+.topbar { background: #0052cc; color: #fff; padding: 9px 20px; display: flex; align-items: center; gap: 18px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 6px rgba(0,0,0,.2); flex-wrap: wrap; }
+.brand { min-width: 220px; }
+.t1 { font-size: 14px; font-weight: 700; }
+.t2 { font-size: 10px; opacity: .75; margin-top: 1px; }
+.viewsw { display: flex; background: rgba(255,255,255,.14); border-radius: 6px; overflow: hidden; }
+.vbtn { background: none; border: none; color: rgba(255,255,255,.75); padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.vbtn:hover { color: #fff; }
+.vbtn.on { background: #fff; color: #0052cc; }
+.filters { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filters label { font-size: 10px; opacity: .8; }
+.filters select, .filters input { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+.filters input::placeholder { color: rgba(255,255,255,.65); }
+.filters select option { background: #0052cc; color: #fff; }
+.fbtn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+.notebar { background: #fffae6; border-bottom: 1px solid #ffe380; color: #7a4800; font-size: 11px; padding: 6px 20px; display: none; }
+.hide { display: none !important; }
+
+/* structured layout */
+#vStruct { display: flex; min-height: calc(100vh - 56px); }
+#side { width: 262px; flex-shrink: 0; background: #fff; border-right: 1px solid #dfe1e6; padding: 12px 10px; overflow-y: auto; position: sticky; top: 56px; max-height: calc(100vh - 56px); align-self: flex-start; }
+#main { flex: 1; padding: 16px 20px 40px; min-width: 0; }
+.ptitle { font-size: 9px; font-weight: 700; color: #6b778c; text-transform: uppercase; letter-spacing: 1px; margin: 4px 4px 6px; }
+.divider { height: 1px; background: #dfe1e6; margin: 10px 0; }
+.tree, .tree ul { list-style: none; }
+.tree ul { margin-left: 14px; border-left: 1px solid #ebecf0; display: none; }
+.tree li.open > ul { display: block; }
+.tnode { display: flex; align-items: flex-start; gap: 2px; padding: 2px 2px; border-radius: 4px; }
+.tnode:hover { background: #f4f5f7; }
+.tg { width: 14px; flex-shrink: 0; text-align: center; cursor: pointer; color: #8993a4; font-size: 9px; padding-top: 3px; transition: transform .15s; user-select: none; }
+.tg.empty { visibility: hidden; }
+li.open > .tnode > .tg { transform: rotate(90deg); }
+.tl { flex: 1; font-size: 11px; color: #172b4d; cursor: pointer; line-height: 1.35; padding: 1px 3px; border-radius: 3px; }
+.tl.sel { background: #deebff; color: #0052cc; font-weight: 600; }
+.tl .lv { font-size: 8px; font-weight: 700; color: #fff; border-radius: 3px; padding: 0 4px; margin-right: 4px; vertical-align: 1px; }
+.tl.l1 { font-weight: 700; }
+.legend { font-size: 10px; color: #42526e; display: flex; flex-direction: column; gap: 5px; padding: 0 4px; }
+.legend .row { display: flex; align-items: center; gap: 6px; }
+.sw { width: 22px; height: 13px; border-radius: 3px; color: #fff; font-size: 8px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fdim { opacity: .22; filter: grayscale(1); }
+.crumbs { font-size: 11px; color: #6b778c; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.crumbs a { color: #0052cc; cursor: pointer; }
+.crumbs a:hover { text-decoration: underline; }
+.crumbs .cur { color: #172b4d; font-weight: 600; }
+
+/* badges, tags, chips */
+.bd { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 8px; border: 1px solid; white-space: nowrap; display: inline-block; }
+.bd.pain { background: #ffebe6; color: #bf2600; border-color: #ffbdad; }
+.bd.idea { background: #fff0b3; color: #7a4800; border-color: #ffe380; }
+.bd.q { background: #eae6ff; color: #403294; border-color: #c0b6f2; }
+.tag { font-size: 9px; padding: 1px 7px; border-radius: 8px; font-weight: 600; display: inline-block; }
+.m-manual { background: #ffebe6; color: #bf2600; }
+.m-system { background: #deebff; color: #0747a6; }
+.m-automated { background: #e3fcef; color: #006644; }
+.sysc { background: #fff; border: 1px solid #dfe1e6; border-radius: 3px; padding: 1px 6px; font-size: 9px; font-weight: 600; color: #42526e; display: inline-block; cursor: pointer; }
+.sysc:hover { border-color: #0052cc; color: #0052cc; }
+.rchip { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #42526e; background: #f4f5f7; padding: 2px 7px; border-radius: 9px; }
+.rchip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.btn { background: #fff; border: 1px solid #c1c7d0; color: #0052cc; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.btn:hover { background: #deebff; border-color: #0052cc; }
+.btn.pri { background: #0052cc; color: #fff; border-color: #0052cc; }
+
+/* overview */
+.hero { background: linear-gradient(135deg,#0052cc,#0747a6); color: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 14px; }
+.hero h2 { font-size: 20px; margin: 3px 0 6px; }
+.hero p { font-size: 12px; opacity: .88; line-height: 1.55; max-width: 900px; }
+.eyebrow { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; opacity: .75; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.kpi { background: #fff; border: 1px solid #dfe1e6; border-radius: 6px; padding: 10px 12px; }
+.kpi b { font-size: 20px; display: block; }
+.kpi span { font-size: 10px; color: #6b778c; }
+.card-box { background: #fff; border: 1px solid #dfe1e6; border-radius: 7px; padding: 12px 14px; margin-bottom: 14px; }
+.card-box h3 { font-size: 12px; margin-bottom: 8px; }
+.stagestrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.scard { border: 1px solid #dfe1e6; border-top-width: 4px; border-radius: 6px; padding: 10px; background: #fafbfc; cursor: pointer; transition: box-shadow .15s; }
+.scard:hover { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+.scard .sc-code { font-size: 9px; font-weight: 700; color: #6b778c; text-transform: uppercase; letter-spacing: .6px; }
+.scard .sc-name { font-size: 12px; font-weight: 700; margin: 2px 0 4px; }
+.scard .sc-p { font-size: 10px; color: #42526e; line-height: 1.45; margin-bottom: 6px; }
+.scard .sc-b { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.matrix { border-collapse: collapse; width: 100%; font-size: 11px; }
+.matrix th { font-size: 9px; text-transform: uppercase; color: #6b778c; font-weight: 700; padding: 4px 6px; text-align: center; }
+.matrix th:first-child, .matrix td:first-child { text-align: left; }
+.matrix td { padding: 4px 6px; text-align: center; border-top: 1px solid #ebecf0; }
+.matrix td.cell { cursor: pointer; font-weight: 700; color: #0747a6; }
+.matrix td.cell:hover { outline: 2px solid #0052cc; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1100px) { .two { grid-template-columns: 1fr; } }
+.hot { display: flex; flex-direction: column; gap: 4px; }
+.hot a { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; background: #f4f5f7; border-radius: 4px; cursor: pointer; font-size: 11px; color: #172b4d; }
+.hot a:hover { background: #deebff; }
+
+/* stage view */
+.shead { color: #fff; padding: 14px 20px; border-radius: 7px; margin-bottom: 10px; }
+.shead h2 { font-size: 18px; margin: 3px 0 5px; }
+.shead p { font-size: 11px; opacity: .9; line-height: 1.5; max-width: 900px; }
+.shead .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+.shead .chip { background: rgba(255,255,255,.2); border-radius: 12px; padding: 2px 10px; font-size: 10px; font-weight: 500; }
+.lvl { margin-bottom: 8px; border: 1px solid #dfe1e6; border-radius: 6px; overflow: hidden; background: #fff; }
+.lvl-h { display: flex; align-items: stretch; }
+.lvl-b { width: 38px; flex-shrink: 0; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.lvl-t { flex: 1; padding: 6px 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lvl-body { border-top: 1px solid #ebecf0; padding: 10px 12px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { background: #f4f5f7; border: 1px solid #dfe1e6; border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+.pill:hover { background: #deebff; border-color: #0052cc; color: #0052cc; }
+.pill.active { background: #0052cc; border-color: #0052cc; color: #fff; box-shadow: 0 2px 6px rgba(0,82,204,.3); }
+.pill small { font-size: 9px; opacity: .75; }
+.arr { color: #c1c7d0; }
+.hint { font-size: 9px; color: #8993a4; margin-top: 6px; width: 100%; }
+.seg { display: inline-flex; border: 1px solid #dfe1e6; border-radius: 5px; overflow: hidden; background: #f4f5f7; }
+.seg button { border: none; background: none; padding: 3px 10px; font-size: 10px; font-weight: 600; color: #6b778c; cursor: pointer; }
+.seg button.on { background: #0052cc; color: #fff; }
+.stepbox { background: #f7faff; border: 1px solid #deebff; border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+.stepbox h4 { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; }
+.gate { border: 1px solid #0052cc; background: #f0f4ff; border-radius: 6px; padding: 9px 11px; }
+.gate .g-l { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6b778c; }
+.gate .g-n { font-size: 12px; font-weight: 700; color: #0747a6; margin: 1px 0 3px; }
+.gate .g-q { font-size: 10px; color: #42526e; line-height: 1.45; margin-bottom: 5px; }
+.gate ul { margin: 0 0 6px 15px; font-size: 10px; color: #42526e; }
+.opts { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.opt { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 8px; border: 1px solid; }
+.o-forward { background: #e3fcef; border-color: #abf5d1; color: #006644; }
+.o-fast { background: #e6fcff; border-color: #b3f5ff; color: #006884; }
+.o-loop { background: #ffebe6; border-color: #ffbdad; color: #bf2600; }
+.o-stop { background: #ffebe6; border-color: #bf2600; color: #bf2600; }
+.o-pause { background: #fff0b3; border-color: #ffe380; color: #7a4800; }
+.o-handoff { background: #e3fcef; border-color: #006644; color: #006644; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.acard { background: #fafbfc; border: 1px solid #dfe1e6; border-radius: 6px; overflow: hidden; }
+.acard:hover { border-color: #c1c7d0; }
+.acard.open { grid-column: 1 / -1; border-color: #0052cc; box-shadow: 0 2px 10px rgba(0,82,204,.14); background: #fff; }
+.acard.hl { border-color: #0052cc; background: #fff; }
+.acard.gone { display: none; }
+.acard.dimmed { opacity: .2; pointer-events: none; }
+.asum { padding: 10px 11px; cursor: pointer; }
+.arow { display: flex; justify-content: space-between; gap: 6px; align-items: flex-start; margin-bottom: 4px; }
+.atitle { font-size: 11px; font-weight: 600; flex: 1; }
+.abd { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.chev { font-size: 9px; color: #6b778c; transition: transform .15s; }
+.acard.open .chev { transform: rotate(90deg); color: #0052cc; }
+.plabel { font-size: 9px; color: #0052cc; background: #deebff; border-radius: 3px; padding: 1px 6px; display: inline-block; margin-bottom: 5px; font-weight: 600; }
+.adesc { font-size: 10px; color: #42526e; line-height: 1.5; margin: 4px 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.adet { display: none; border-top: 1px solid #deebff; background: #f7faff; padding: 12px 14px; }
+.acard.open .adet { display: block; }
+.dg { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.sec { margin-bottom: 8px; }
+.sec-l { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 5px; color: #6b778c; }
+.sec-l.pain { color: #bf2600; } .sec-l.idea { color: #b07d00; } .sec-l.q { color: #403294; }
+.pp { background: #fff; border: 1px solid #dfe1e6; border-left: 3px solid #ff5630; border-radius: 4px; padding: 6px 9px; margin-bottom: 5px; font-size: 10px; line-height: 1.5; }
+.pp.sev-low { border-left-color: #ffab00; } .pp.sev-medium { border-left-color: #ff7452; }
+.pp .sev { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #bf2600; margin-right: 6px; }
+.idea-c { background: #fffae6; border: 1px solid #ffe380; border-left: 3px solid #f6c900; border-radius: 4px; padding: 6px 9px; margin-bottom: 5px; font-size: 10px; line-height: 1.5; }
+.idea-c .itag { font-size: 8px; font-weight: 700; text-transform: uppercase; background: #e6fcff; color: #006884; border: 1px solid #b3f5ff; border-radius: 6px; padding: 1px 6px; margin-right: 5px; }
+.oq { background: #fff; border: 1px solid #dfe1e6; border-left: 3px solid #6554c0; border-radius: 4px; padding: 6px 9px; margin-bottom: 5px; font-size: 10px; line-height: 1.5; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.io { font-size: 10px; color: #42526e; line-height: 1.6; }
+.metarow { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 4px 0 8px; }
+.tasks { margin-top: 10px; border-top: 1px dashed #c1c7d0; padding-top: 8px; }
+.tasks > .sec-l { display: flex; align-items: center; gap: 6px; }
+details.task { background: #fff; border: 1px solid #dfe1e6; border-radius: 5px; margin-bottom: 4px; }
+details.task[open] { border-color: #5e6c84; }
+details.task > summary { list-style: none; cursor: pointer; padding: 6px 9px; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+details.task > summary::-webkit-details-marker { display: none; }
+details.task > summary::before { content: '\25B6'; font-size: 8px; color: #6b778c; transition: transform .15s; }
+details.task[open] > summary::before { transform: rotate(90deg); }
+details.task .tn { flex: 1; font-weight: 600; }
+details.task .tcode { font-size: 9px; color: #fff; background: #5e6c84; border-radius: 3px; padding: 0 5px; }
+details.task .tbody { padding: 4px 12px 10px 24px; border-top: 1px solid #ebecf0; }
+details.task.hl { border-color: #0052cc; box-shadow: 0 0 0 2px #deebff; }
+.empty { color: #8993a4; font-size: 10px; font-style: italic; }
+.mini-flow { display: flex; flex-wrap: wrap; gap: 0; margin: 6px 0 10px; }
+.mf { font-size: 10px; background: #deebff; color: #0747a6; padding: 5px 14px 5px 18px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 10px 50%); margin-right: -6px; cursor: pointer; font-weight: 600; }
+.mf:first-child { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); padding-left: 10px; }
+.mf:hover { background: #0052cc; color: #fff; }
+
+/* flow view */
+#vFlow { display: none; flex-direction: column; height: calc(100vh - 56px); }
+.ftool { background: #fff; border-bottom: 1px solid #dfe1e6; padding: 7px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+.ftool select { border: 1px solid #c1c7d0; border-radius: 4px; padding: 3px 6px; font-size: 11px; }
+.ftool .btn { padding: 3px 9px; }
+.flegend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 10px; color: #42526e; margin-left: auto; }
+.flegend .li { display: flex; gap: 5px; align-items: center; }
+.flegend .lb { width: 13px; height: 11px; border-radius: 2px; border: 1px solid #888; }
+.fwrap { flex: 1; position: relative; display: flex; min-height: 0; }
+#fscroll { flex: 1; overflow: auto; background: #fff; }
+#drawer { width: 410px; flex-shrink: 0; background: #fff; border-left: 1px solid #dfe1e6; overflow-y: auto; box-shadow: -4px 0 12px rgba(0,0,0,.06); display: none; }
+#drawer.on { display: block; }
+.dh { padding: 12px 14px; border-bottom: 1px solid #ebecf0; position: sticky; top: 0; background: #fff; z-index: 2; }
+.dh .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.dh h3 { font-size: 14px; margin: 3px 0; }
+.dh .x { background: none; border: none; font-size: 18px; cursor: pointer; color: #6b778c; }
+.dh .lv { font-size: 9px; font-weight: 700; color: #fff; background: #0747a6; border-radius: 3px; padding: 1px 6px; }
+.db { padding: 10px 14px 24px; }
+.dacts { display: flex; gap: 6px; margin: 8px 0 2px; flex-wrap: wrap; }
+.fnode { cursor: pointer; }
+.fnode:hover .nshape { stroke: #0052cc; stroke-width: 2.5; }
+.fnode.sel .nshape { stroke: #0052cc; stroke-width: 3.5; }
+.fnode.pulse .nshape { animation: pulse 0.9s ease-in-out 3; }
+@keyframes pulse { 0%,100% { stroke-width: 3; } 50% { stroke-width: 9; stroke-opacity: .45; } }
+.fband { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="t1" id="tTitle"></div><div class="t2" id="tSub"></div></div>
+  <div class="viewsw">
+    <button class="vbtn" data-act="view" data-id="structured">Structured view</button>
+    <button class="vbtn" data-act="view" data-id="flow">Flow view</button>
+  </div>
+  <div class="filters">
+    <input id="fq" type="search" placeholder="Search process...">
+    <label>Role</label><select id="fRole"></select>
+    <label>System</label><select id="fSys"></select>
+    <label>Show only</label>
+    <select id="fLens">
+      <option value="">Everything</option>
+      <option value="pain">With pain points</option>
+      <option value="idea">With ideas</option>
+      <option value="q">With open questions</option>
+    </select>
+    <button class="fbtn" data-act="clear">Clear</button>
+  </div>
+</div>
+<div class="notebar" id="noteBar"></div>
+
+<div id="vStruct">
+  <aside id="side"></aside>
+  <main id="main"></main>
+</div>
+
+<div id="vFlow">
+  <div class="ftool">
+    <span>Colour by
+      <select id="fColor">
+        <option value="">Step type</option>
+        <option value="pain">Pain points</option>
+        <option value="idea">Ideas captured</option>
+        <option value="q">Open questions</option>
+        <option value="mode">Execution mode</option>
+      </select>
+    </span>
+    <span>Show <select id="fSysLbl"><option value="">Nothing extra</option><option value="sys">Systems</option><option value="role">Owner role</option></select></span>
+    <span><button class="btn" data-act="zoom" data-id="out">-</button> <span id="zlbl">75%</span> <button class="btn" data-act="zoom" data-id="in">+</button> <button class="btn" data-act="zoom" data-id="fit">Fit width</button></span>
+    <div class="flegend" id="flegend"></div>
+  </div>
+  <div class="fwrap">
+    <div id="fscroll"><svg id="fsvg" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,system-ui,sans-serif"></svg></div>
+    <aside id="drawer"></aside>
+  </div>
+</div>
+
+<script id="model-data" type="application/json">__MODEL_JSON__</script>
+<script>
+(function () {
+'use strict';
+var M = JSON.parse(document.getElementById('model-data').textContent);
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var arr = function (x) { return Array.isArray(x) ? x : (x ? [x] : []); };
+
+/* ---------- normalise + index ---------- */
+var STAGE_COLORS = ['#0052cc', '#0065ff', '#0747a6', '#2684ff', '#403294', '#00875a', '#ff8b00', '#008da6'];
+var LCOL = { 1: '#172b4d', 2: '#0052cc', 3: '#0747a6', 4: '#253858', 5: '#5e6c84' };
+var MODE_LBL = { manual: 'Manual', system: 'System-supported', automated: 'Automated' };
+var roles = {}, systems = {}, items = {}, decisions = {};
+arr(M.roles).forEach(function (r) { roles[r.id] = r; });
+arr(M.systems).forEach(function (s) { systems[s.id] = s; });
+arr(M.decisions).forEach(function (d) { decisions[d.id] = d; d.options = arr(d.options); d.criteria = arr(d.criteria); });
+var role = function (id) { return roles[id] || { id: id, name: id || 'Unassigned', short: id || 'n/a', color: '#6b778c' }; };
+var sysName = function (id) { return (systems[id] && systems[id].name) || id; };
+var modeKey = function (m) { m = String(m || 'manual').toLowerCase(); return m.indexOf('auto') === 0 ? 'automated' : (m.indexOf('sys') === 0 ? 'system' : 'manual'); };
+function normPain(p) { return typeof p === 'string' ? { text: p, severity: 'medium' } : Object.assign({ severity: 'medium' }, p); }
+function normIdea(i) { return typeof i === 'string' ? { title: i, text: '', type: 'Idea' } : Object.assign({ type: 'Idea', text: '' }, i); }
+function reg(it, level, parent) {
+  it._level = level; it._parent = parent; items[it.id] = it;
+  it.painPoints = arr(it.painPoints).map(normPain);
+  it.ideas = arr(it.ideas).map(normIdea);
+  it.questions = arr(it.questions);
+  it.systems = arr(it.systems);
+  it.mode = modeKey(it.mode);
+}
+var stages = arr(M.stages);
+stages.forEach(function (s, i) {
+  reg(s, 2, null); s._color = s.color || STAGE_COLORS[i % STAGE_COLORS.length]; s._idx = i;
+  s.steps = arr(s.steps);
+  s.steps.forEach(function (t) {
+    reg(t, 3, s); t.activities = arr(t.activities);
+    t.activities.forEach(function (a) {
+      reg(a, 4, t); a.tasks = arr(a.tasks);
+      a.tasks.forEach(function (k) { reg(k, 5, a); });
+    });
+  });
+});
+var kids = function (it) { return it._level === 2 ? it.steps : it._level === 3 ? it.activities : it._level === 4 ? it.tasks : []; };
+var lbl = function (it) { return (it.code ? it.code + ' ' : '') + it.name; };
+var roleOf = function (it) { return it.role || it.owner; };
+function aggregate(it) {
+  var a = { pain: it.painPoints.length, idea: it.ideas.length, q: it.questions.length, leaf: { manual: 0, system: 0, automated: 0 } };
+  var rs = {}, ss = {};
+  [roleOf(it)].concat(arr(it.supportRoles), arr(it.roles)).forEach(function (r) { if (r) rs[r] = 1; });
+  it.systems.forEach(function (s) { ss[s] = 1; });
+  var txt = [it.code, it.name, it.description, it.purpose].concat(
+    it.painPoints.map(function (p) { return p.text; }),
+    it.ideas.map(function (i) { return i.title + ' ' + i.text + ' ' + i.type; }),
+    it.questions, it.systems.map(sysName)).join(' ');
+  var ks = kids(it);
+  ks.forEach(function (k) {
+    aggregate(k);
+    a.pain += k._agg.pain; a.idea += k._agg.idea; a.q += k._agg.q;
+    a.leaf.manual += k._agg.leaf.manual; a.leaf.system += k._agg.leaf.system; a.leaf.automated += k._agg.leaf.automated;
+    Object.keys(k._roles).forEach(function (r) { rs[r] = 1; });
+    Object.keys(k._systems).forEach(function (s) { ss[s] = 1; });
+    txt += ' ' + k._text;
+  });
+  if (it._level >= 3 && !ks.length) a.leaf[it.mode]++;
+  it._agg = a; it._roles = rs; it._systems = ss; it._text = txt.toLowerCase();
+}
+stages.forEach(aggregate);
+function domMode(it) {
+  var l = it._agg.leaf, best = 'manual';
+  ['system', 'automated'].forEach(function (m) { if (l[m] > l[best]) best = m; });
+  return best;
+}
+var allItems = Object.keys(items).map(function (k) { return items[k]; });
+var byLevel = function (n) { return allItems.filter(function (i) { return i._level === n; }); };
+
+/* ---------- state + filters ---------- */
+var S = { view: 'structured', stage: 'overview', step: null, act: null, task: null, dec: null, mode: 'hide', fsel: null, ffocus: null, zoom: 0.75, tree: {}, color: '', label: '' };
+var Fl = { role: '', sys: '', lens: '', q: '' };
+var noFilter = function () { return !Fl.role && !Fl.sys && !Fl.lens && !Fl.q; };
+function match(it) {
+  if (Fl.role && !it._roles[Fl.role]) return false;
+  if (Fl.sys && !it._systems[Fl.sys]) return false;
+  if (Fl.lens && !it._agg[Fl.lens]) return false;
+  if (Fl.q && it._text.indexOf(Fl.q) < 0) return false;
+  return true;
+}
+var dimc = function (it) { return match(it) ? '' : ' fdim'; };
+
+/* ---------- html helpers ---------- */
+function roleChip(id) { var r = role(id); return '<span class="rchip" title="' + esc(r.name) + '"><i style="background:' + esc(r.color || '#6b778c') + '"></i>' + esc(r.short || r.name) + '</span>'; }
+function badges(it) {
+  var a = it._agg, h = '';
+  if (a.pain) h += '<span class="bd pain" title="Pain points">&#9888; ' + a.pain + '</span>';
+  if (a.idea) h += '<span class="bd idea" title="Ideas captured">&#128161; ' + a.idea + '</span>';
+  if (a.q) h += '<span class="bd q" title="Open questions">? ' + a.q + '</span>';
+  return h;
+}
+function sysChips(list) { return list.map(function (s) { return '<span class="sysc" data-act="sys" data-id="' + esc(s) + '" title="Filter by this system">' + esc(sysName(s)) + '</span>'; }).join(''); }
+function modeTag(m) { return '<span class="tag m-' + m + '">' + MODE_LBL[m] + '</span>'; }
+function section(cls, title, body) { return body ? '<div class="sec"><div class="sec-l ' + cls + '">' + title + '</div>' + body + '</div>' : ''; }
+function blocks(it) {
+  var h = '';
+  var meta = '<div class="metarow">' + (roleOf(it) ? roleChip(roleOf(it)) : '') + arr(it.supportRoles).map(roleChip).join('') + (it._level >= 3 ? modeTag(it.mode) : '') + (it.duration ? '<span class="rchip">&#9201; ' + esc(it.duration) + '</span>' : '') + (it.interface ? '<span class="rchip" style="background:#f8ddf0;color:#8a2f72">Key zone interface</span>' : '') + '</div>';
+  h += meta;
+  if (it.description) h += '<div class="adesc">' + esc(it.description) + '</div>';
+  var col1 = '', col2 = '';
+  col1 += section('pain', '&#9888; Pain points', it.painPoints.map(function (p) { return '<div class="pp sev-' + esc(p.severity) + '"><span class="sev">' + esc(p.severity) + '</span>' + esc(p.text) + '</div>'; }).join(''));
+  col1 += section('q', '? Open questions', it.questions.map(function (q) { return '<div class="oq">' + esc(q) + '</div>'; }).join(''));
+  col2 += section('idea', '&#128161; Ideas captured', it.ideas.map(function (i) { return '<div class="idea-c"><span class="itag">' + esc(i.type) + '</span><b>' + esc(i.title) + '</b>' + (i.text ? '<div>' + esc(i.text) + '</div>' : '') + '</div>'; }).join(''));
+  col2 += section('', '&#9881; Systems', it.systems.length ? '<div class="chips">' + sysChips(it.systems) + '</div>' : '');
+  var io = '';
+  if (arr(it.inputs).length) io += '<div><b>Inputs:</b> ' + arr(it.inputs).map(function (x) { return esc(x.label || x); }).join(', ') + '</div>';
+  if (arr(it.outputs).length) io += '<div><b>Outputs:</b> ' + arr(it.outputs).map(function (x) { return esc(x.label || x); }).join(', ') + '</div>';
+  col2 += section('', 'Inputs / outputs', io ? '<div class="io">' + io + '</div>' : '');
+  if (col1 || col2) h += '<div class="dg"><div>' + col1 + '</div><div>' + col2 + '</div></div>';
+  return h;
+}
+function taskHTML(k, open) {
+  return '<details class="task' + dimc(k) + (S.task === k.id ? ' hl' : '') + '" id="el-' + k.id + '"' + (open || S.task === k.id ? ' open' : '') + '><summary><span class="tcode">L5</span><span class="tn">' + esc(lbl(k)) + '</span>' + roleChip(roleOf(k)) + modeTag(k.mode) + badges(k) + '</summary><div class="tbody">' + blocks(k) + '</div></details>';
+}
+function flowBtn(id, label) { return '<button class="btn" data-act="flow" data-id="' + esc(id) + '">' + (label || 'Show in flow view &#8599;') + '</button>'; }
+function structBtn(id, label) { return '<button class="btn" data-act="struct" data-id="' + esc(id) + '">' + (label || 'Open in structured view &#8599;') + '</button>'; }
+
+/* ---------- structured: sidebar ---------- */
+function treeHTML() {
+  function node(it) {
+    var ks = kids(it), sel = (S.stage === it.id && !S.step) || S.step === it.id || S.act === it.id || S.task === it.id;
+    var open = S.tree[it.id] ? ' open' : '';
+    var h = '<li class="' + (open ? 'open' : '') + '"><div class="tnode"><span class="tg' + (ks.length ? '' : ' empty') + '" data-act="tg" data-id="' + it.id + '">&#9654;</span><span class="tl' + (sel ? ' sel' : '') + dimc(it) + '" data-act="nav" data-id="' + it.id + '"><span class="lv" style="background:' + LCOL[it._level] + '">L' + it._level + '</span>' + esc(lbl(it)) + '</span></div>';
+    if (ks.length) h += '<ul>' + ks.map(node).join('') + '</ul>';
+    return h + '</li>';
+  }
+  return '<div class="ptitle">Process outline (L1 - L5)</div><ul class="tree"><li class="open"><div class="tnode"><span class="tg empty">&#9654;</span><span class="tl l1' + (S.stage === 'overview' ? ' sel' : '') + '" data-act="nav" data-id="overview"><span class="lv" style="background:' + LCOL[1] + '">L1</span>' + esc(M.meta.processName || M.meta.title) + '</span></div><ul style="display:block">' + stages.map(node).join('') + '</ul></li></ul>' +
+    '<div class="divider"></div><div class="ptitle">Legend</div><div class="legend">' +
+    '<div class="row"><span class="sw" style="background:#0052cc">L2</span>Stage / phase</div><div class="row"><span class="sw" style="background:#0747a6">L3</span>Step (shown in flow view)</div><div class="row"><span class="sw" style="background:#253858">L4</span>Activity</div><div class="row"><span class="sw" style="background:#5e6c84">L5</span>Task</div>' +
+    '<div class="row"><span class="bd pain">&#9888; n</span>Pain points</div><div class="row"><span class="bd idea">&#128161; n</span>Ideas captured</div><div class="row"><span class="bd q">? n</span>Open questions</div>' +
+    '<div class="row">' + modeTag('manual') + modeTag('system') + modeTag('automated') + '</div></div>';
+}
+
+/* ---------- structured: overview ---------- */
+function overviewHTML() {
+  var tot = { pain: 0, idea: 0, q: 0, manual: 0, leaf: 0 };
+  stages.forEach(function (s) { tot.pain += s._agg.pain; tot.idea += s._agg.idea; tot.q += s._agg.q; tot.manual += s._agg.leaf.manual; tot.leaf += s._agg.leaf.manual + s._agg.leaf.system + s._agg.leaf.automated; });
+  var usedSys = {}; allItems.forEach(function (i) { i.systems.forEach(function (s) { usedSys[s] = (usedSys[s] || 0) + 1; }); });
+  var k = function (n, l) { return '<div class="kpi"><b>' + n + '</b><span>' + l + '</span></div>'; };
+  var h = '<div class="hero"><div class="eyebrow">' + esc(M.meta.eyebrow || 'As-is process') + ' &middot; L1</div><h2>' + esc(M.meta.processName || M.meta.title) + '</h2><p>' + esc(M.meta.description || '') + '</p></div>';
+  h += '<div class="kpis">' + k(stages.length, 'Stages (L2)') + k(byLevel(3).length, 'Steps (L3)') + k(byLevel(4).length, 'Activities (L4)') + k(byLevel(5).length, 'Tasks (L5)') + k(Object.keys(roles).length, 'Roles') + k(Object.keys(usedSys).length, 'Systems') + k(tot.pain, 'Pain points') + k(tot.idea, 'Ideas captured') + k(tot.q, 'Open questions') + k(tot.leaf ? Math.round(100 * tot.manual / tot.leaf) + '%' : '-', 'Manual at lowest level') + '</div>';
+  h += '<div class="card-box"><h3>Stages (L2) - click to drill down</h3><div class="stagestrip">' + stages.map(function (s) {
+    return '<div class="scard' + dimc(s) + '" style="border-top-color:' + s._color + '" data-act="nav" data-id="' + s.id + '"><div class="sc-code">' + esc(s.code || 'Stage ' + (s._idx + 1)) + '</div><div class="sc-name">' + esc(s.name) + '</div><div class="sc-p">' + esc(s.purpose || '') + '</div><div class="sc-b">' + roleChip(roleOf(s)) + badges(s) + '</div></div>';
+  }).join('') + '</div></div>';
+  var rows = Object.keys(roles).map(function (rid) {
+    return '<tr><td>' + roleChip(rid) + '</td>' + stages.map(function (s) {
+      var n = 0; (function walk(it) { if (it._level >= 3 && (roleOf(it) === rid || arr(it.supportRoles).indexOf(rid) >= 0)) n++; kids(it).forEach(walk); })(s);
+      return n ? '<td class="cell" style="background:rgba(0,82,204,' + Math.min(0.1 + n * 0.035, 0.45) + ')" data-act="rolecell" data-id="' + s.id + '" data-role="' + rid + '">' + n + '</td>' : '<td></td>';
+    }).join('') + '</tr>';
+  }).join('');
+  h += '<div class="card-box"><h3>Role involvement by stage (items at L3-L5) - click a cell to filter</h3><table class="matrix"><tr><th>Role</th>' + stages.map(function (s) { return '<th>' + esc(s.code || s.name) + '</th>'; }).join('') + '</tr>' + rows + '</table></div>';
+  var steps = byLevel(3);
+  var hotP = steps.slice().sort(function (a, b) { return b._agg.pain - a._agg.pain; }).filter(function (x) { return x._agg.pain; }).slice(0, 6);
+  var hotI = steps.slice().sort(function (a, b) { return b._agg.idea - a._agg.idea; }).filter(function (x) { return x._agg.idea; }).slice(0, 6);
+  var hot = function (list, key, cls) { return '<div class="hot">' + list.map(function (x) { return '<a data-act="nav" data-id="' + x.id + '"><span>' + esc(lbl(x)) + '</span><span class="bd ' + cls + '">' + x._agg[key] + '</span></a>'; }).join('') + '</div>'; };
+  h += '<div class="two"><div class="card-box"><h3>Pain-point hot spots (L3 steps)</h3>' + hot(hotP, 'pain', 'pain') + '</div><div class="card-box"><h3>Where most ideas are captured (L3 steps)</h3>' + hot(hotI, 'idea', 'idea') + '</div></div>';
+  var sl = Object.keys(usedSys).sort(function (a, b) { return usedSys[b] - usedSys[a]; });
+  h += '<div class="card-box"><h3>Systems in use (click to filter)</h3><div class="chips">' + sl.map(function (s) { return '<span class="sysc" data-act="sys" data-id="' + esc(s) + '">' + esc(sysName(s)) + ' &middot; ' + usedSys[s] + '</span>'; }).join('') + '</div></div>';
+  return h;
+}
+
+/* ---------- structured: stage ---------- */
+function crumbs() {
+  var h = '<a data-act="nav" data-id="overview">' + esc(M.meta.processName || M.meta.title) + '</a>';
+  var it = S.task ? items[S.task] : S.act ? items[S.act] : S.step ? items[S.step] : items[S.stage];
+  var chain = []; while (it) { chain.unshift(it); it = it._parent; }
+  chain.forEach(function (c, i) { h += ' &rsaquo; ' + (i === chain.length - 1 ? '<span class="cur">' + esc(lbl(c)) + '</span>' : '<a data-act="nav" data-id="' + c.id + '">' + esc(lbl(c)) + '</a>'); });
+  return '<div class="crumbs">' + h + '</div>';
+}
+function gateHTML(st) {
+  var ds = arr(M.decisions).filter(function (d) { return d.before === st.id || d.after === st.id; });
+  if (!ds.length) return '';
+  return '<div class="lvl"><div class="lvl-h"><div class="lvl-b" style="background:#6554c0">GATE</div><div class="lvl-t" style="background:#eae6ff;color:#403294">Decision gates around this stage</div></div><div class="lvl-body"><div class="gates">' + ds.map(function (d) {
+    return '<div class="gate"><div class="g-l">' + (d.before === st.id ? 'Entry gate' : 'Exit gate') + ' &middot; owner ' + esc(role(d.owner).short) + '</div><div class="g-n">&#9670; ' + esc(d.name) + '</div><div class="g-q">' + esc(d.question || '') + '</div>' +
+      (d.criteria.length ? '<ul>' + d.criteria.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' : '') +
+      '<div class="opts">' + d.options.map(function (o) { return '<span class="opt o-' + esc(o.kind || 'forward') + '">' + esc(o.label) + '</span>'; }).join('') + '</div>' + flowBtn(d.id) + '</div>';
+  }).join('') + '</div></div></div>';
+}
+function cardHTML(a, st) {
+  var step = a._parent, sel = S.step, cls = 'acard' + dimc(a);
+  if (sel) { cls += step.id === sel ? ' hl' : (S.mode === 'hide' ? ' gone' : ' dimmed'); }
+  if (S.act === a.id) cls += ' open';
+  return '<div class="' + cls + '" id="el-' + a.id + '" data-card="' + a.id + '"><div class="asum" data-act="card" data-id="' + a.id + '">' +
+    '<div class="plabel">' + esc(lbl(step)) + '</div><div class="arow"><span class="atitle">' + esc(lbl(a)) + '</span><div class="abd">' + badges(a) + '<span class="chev">&#9654;</span></div></div>' +
+    '<div>' + roleChip(roleOf(a)) + '</div><div class="adesc">' + esc(a.description || '') + '</div><div class="tags">' + modeTag(a.mode) + a.systems.slice(0, 3).map(function (s) { return '<span class="sysc">' + esc(sysName(s)) + '</span>'; }).join('') + (a.tasks.length ? '<span class="rchip">' + a.tasks.length + (a.tasks.length === 1 ? ' task' : ' tasks') + '</span>' : '') + '</div></div>' +
+    '<div class="adet">' + blocks(a) + '<div class="tasks"><div class="sec-l">L5 tasks (' + a.tasks.length + ')</div>' + (a.tasks.length ? a.tasks.map(function (k) { return taskHTML(k, false); }).join('') : '<div class="empty">No L5 tasks captured.</div>') + '</div>' +
+    '<div class="dacts">' + flowBtn(a.id) + '</div></div></div>';
+}
+function stageHTML(st) {
+  var h = crumbs();
+  h += '<div class="shead" style="background:linear-gradient(135deg,' + st._color + ',#172b4d)"><div class="eyebrow">' + esc(st.code || 'Stage') + ' &middot; L2</div><h2>' + esc(st.name) + '</h2><p>' + esc(st.purpose || '') + '</p><div class="chips"><span class="chip">Owner: ' + esc(role(roleOf(st)).name) + '</span>' + (st.outputs ? '<span class="chip">Outputs: ' + arr(st.outputs).map(function (o) { return esc(o.label || o); }).join(', ') + '</span>' : '') + '<span class="chip">&#9888; ' + st._agg.pain + ' pain points</span><span class="chip">&#128161; ' + st._agg.idea + ' ideas</span><span class="chip">? ' + st._agg.q + ' open questions</span></div></div>';
+  h += '<div class="lvl"><div class="lvl-h"><div class="lvl-b" style="background:#0747a6">L3</div><div class="lvl-t" style="background:#f0f4ff;color:#0747a6">Steps - click one to focus its activities ' + flowBtn(st.id, 'Show stage in flow view &#8599;') + '</div></div><div class="lvl-body"><div class="pills">' +
+    st.steps.map(function (t, i) { return (i ? '<span class="arr">&rsaquo;</span>' : '') + '<span class="pill' + (S.step === t.id ? ' active' : '') + dimc(t) + '" data-act="step" data-id="' + t.id + '">' + esc(lbl(t)) + ' <small>' + esc(role(roleOf(t)).short) + '</small>' + badges(t) + '</span>'; }).join('') +
+    '<div class="hint">Selecting a step highlights its L4 activities below and opens its details.</div></div>';
+  if (S.step && items[S.step] && items[S.step]._parent === st) {
+    var t = items[S.step];
+    h += '<div class="stepbox"><h4><span>' + esc(lbl(t)) + '</span><span>' + flowBtn(t.id) + '</span></h4>' + blocks(t) + '</div>';
+  }
+  h += '</div></div>';
+  h += gateHTML(st);
+  h += '<div class="lvl"><div class="lvl-h"><div class="lvl-b" style="background:#253858">L4</div><div class="lvl-t" style="background:#f4f5f7;color:#253858">Activities &rarr; tasks (L5) <span style="font-size:9px;font-weight:400;color:#6b778c">' + (S.step ? '- ' + esc(lbl(items[S.step])) : '- all steps') + '</span>' +
+    (S.step ? '<span class="seg"><button data-act="mode" data-id="hide" class="' + (S.mode === 'hide' ? 'on' : '') + '">Hide others</button><button data-act="mode" data-id="dim" class="' + (S.mode === 'dim' ? 'on' : '') + '">Dim others</button></span>' : '') + '</div></div><div class="lvl-body"><div class="grid">' +
+    st.steps.map(function (t) { return t.activities.map(function (a) { return cardHTML(a, st); }).join(''); }).join('') + '</div></div></div>';
+  return h;
+}
+
+/* ---------- flow model + layout ---------- */
+var flow = null;
+function buildFlow() {
+  var F = M.flow || { lanes: [], nodes: [] };
+  var lanes = arr(F.lanes).length ? arr(F.lanes) : Object.keys(roles);
+  var nodes = arr(F.nodes).map(function (n, i) {
+    var o = Object.assign({}, n); o.idx = i; o.kind = o.kind || 'step';
+    if (o.kind === 'step') { o.it = items[o.ref]; o.id = o.ref; o.label = lbl(o.it); o.lane = o.lane || roleOf(o.it); }
+    else if (o.kind === 'decision') { o.d = decisions[o.ref]; o.id = o.ref; o.label = o.d.name; o.lane = o.lane || o.d.owner; }
+    else { o.id = o.id || o.ref || ('n' + i); o.label = o.label || o.id; }
+    if (lanes.indexOf(o.lane) < 0) o.lane = lanes[0];
+    o.laneIdx = lanes.indexOf(o.lane);
+    return o;
+  });
+  var byId = {}; nodes.forEach(function (n) { byId[n.id] = n; });
+  var edges = [], terms = [];
+  nodes.forEach(function (n) {
+    var next = nodes[n.idx + 1];
+    if (n.kind === 'decision') {
+      n.d.options.forEach(function (o) {
+        var k = o.kind || 'forward';
+        var tgt = o.to ? byId[o.to] : null;
+        if (!tgt && (k === 'forward' || k === 'fast' || k === 'loop')) tgt = next;
+        if (tgt) edges.push({ from: n, to: tgt, label: k === 'forward' ? (o.label || '') : o.label, kind: k });
+        else terms.push({ from: n, label: o.label, kind: k });
+      });
+    } else if (n.kind !== 'end') {
+      var tos = arr(n.next).length ? arr(n.next).map(function (id) { return byId[id]; }).filter(Boolean) : (next ? [next] : []);
+      tos.forEach(function (t) { edges.push({ from: n, to: t, label: '', kind: 'forward' }); });
+    }
+  });
+  flow = { lanes: lanes, nodes: nodes, byId: byId, edges: edges, terms: terms };
+}
+var FL = { COLW: 150, X0: 190, LANEH: 178, NODEW: 120, NODEH: 64 };
+function wrap(t, max, maxLines) {
+  var words = String(t).split(/\s+/), lines = [], cur = '';
+  words.forEach(function (w) { if ((cur + ' ' + w).trim().length > max && cur) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); });
+  if (cur) lines.push(cur);
+  if (maxLines && lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1].replace(/.{0,2}$/, '') + '...'; }
+  return lines;
+}
+function textLines(lines, x, y, size, lh, anchor, fill, weight) {
+  var y0 = y - ((lines.length - 1) * lh) / 2;
+  return lines.map(function (l, i) { return '<text x="' + x + '" y="' + (y0 + i * lh) + '" text-anchor="' + (anchor || 'middle') + '" dominant-baseline="middle" font-size="' + size + '" fill="' + (fill || '#2B2B2B') + '"' + (weight ? ' font-weight="' + weight + '"' : '') + '>' + esc(l) + '</text>'; }).join('');
+}
+function heat(n, max, rgb) { return n && max ? 'rgba(' + rgb + ',' + (0.15 + 0.7 * n / max).toFixed(2) + ')' : '#F4F5F7'; }
+function nodeFill(n, maxes) {
+  var c = S.color, it = n.it;
+  if (n.kind !== 'step') return null;
+  if (c === 'pain') return heat(it._agg.pain, maxes.pain, '255,86,48');
+  if (c === 'idea') return heat(it._agg.idea, maxes.idea, '246,201,0');
+  if (c === 'q') return heat(it._agg.q, maxes.q, '101,84,192');
+  if (c === 'mode') return { manual: '#FFD9D2', system: '#D9E8FF', automated: '#D4F5E2' }[domMode(it)];
+  return it.interface ? '#F8DDF0' : '#EFEFEF';
+}
+function nodeStroke(n) { if (n.kind !== 'step') return '#3A6EA5'; return n.it.interface && !S.color ? '#B0589A' : '#8A8A8A'; }
+function dims(n) { return n.kind === 'step' ? { hw: FL.NODEW / 2, hh: FL.NODEH / 2 } : n.kind === 'decision' ? { hw: 28, hh: 28 } : { hw: 17, hh: 17 }; }
+
+function flowSVG() {
+  var fl = flow, nodes = fl.nodes, n0 = nodes.length;
+  var W = FL.X0 + n0 * FL.COLW + 60;
+  var maxes = { pain: 0, idea: 0, q: 0 };
+  nodes.forEach(function (n) { if (n.it) { maxes.pain = Math.max(maxes.pain, n.it._agg.pain); maxes.idea = Math.max(maxes.idea, n.it._agg.idea); maxes.q = Math.max(maxes.q, n.it._agg.q); } });
+  var cx = function (n) { return FL.X0 + n.idx * FL.COLW + FL.COLW / 2; };
+  // classify edges
+  var chan = [];
+  fl.edges.forEach(function (e) { e.adj = (e.to.idx === e.from.idx + 1); if (!e.adj) chan.push(e); });
+  chan.sort(function (a, b) { return Math.abs(a.to.idx - a.from.idx) - Math.abs(b.to.idx - b.from.idx); });
+  chan.forEach(function (e, i) { e.level = i; });
+  var railH = fl.terms.length ? 130 : 0, chanH = chan.length ? chan.length * 15 + 20 : 10;
+  var bandY = 8, railTop = 40, chanTop = railTop + railH, lanesTop = chanTop + chanH;
+  var H = lanesTop + fl.lanes.length * FL.LANEH + 20;
+  var ly = function (n) { return lanesTop + n.laneIdx * FL.LANEH + 70; };
+  var s = '<defs><marker id="ma" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#555"/></marker><marker id="mr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#C41018"/></marker><marker id="mg" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1A6B40"/></marker><marker id="mw" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#888"/></marker>' +
+    '<g id="doc"><polygon points="0,0 20,0 30,10 30,40 0,40" fill="white" stroke="#1A6B40" stroke-width="1.5"/><polygon points="20,0 20,10 30,10" fill="#1A6B40" opacity="0.5"/><line x1="5" y1="18" x2="25" y2="18" stroke="#1A6B40"/><line x1="5" y1="24" x2="25" y2="24" stroke="#1A6B40"/><line x1="5" y1="30" x2="18" y2="30" stroke="#1A6B40"/></g></defs>';
+  // lanes
+  var laneCols = ['#F2F5FC', '#F7F9FF', '#EEF0FF', '#FFF3F3', '#F1FAF4', '#FFF9EC'], laneHead = ['#1E2761', '#2A3575', '#2D3D8C', '#7A0E13', '#0b5d3b', '#7a4800'];
+  fl.lanes.forEach(function (lid, i) {
+    var y = lanesTop + i * FL.LANEH, r = role(lid);
+    s += '<rect x="40" y="' + y + '" width="' + (W - 40) + '" height="' + FL.LANEH + '" fill="' + laneCols[i % 6] + '" stroke="#aab4cc"/><rect x="10" y="' + y + '" width="30" height="' + FL.LANEH + '" fill="' + (r.color && false ? r.color : laneHead[i % 6]) + '" stroke="#aab4cc"/>';
+    var nm = wrap(r.name, 24, 2);
+    nm.forEach(function (l, j) { s += '<text transform="translate(' + (21 + j * 12) + ',' + (y + FL.LANEH / 2) + ') rotate(-90)" text-anchor="middle" dominant-baseline="middle" font-size="9.5" font-weight="bold" fill="white">' + esc(l) + '</text>'; });
+  });
+  // bands
+  var bands = [], cur = null;
+  nodes.forEach(function (n) {
+    var key = n.kind === 'step' ? n.it._parent.id : (n.band || n.label), st = n.kind === 'step' ? n.it._parent : null;
+    if (cur && cur.key === key) cur.to = n.idx; else { cur = { key: key, from: n.idx, to: n.idx, st: st, label: st ? ((st.code ? st.code + ': ' : '') + st.name) : String(key).toUpperCase() }; bands.push(cur); }
+  });
+  var si = 0;
+  bands.forEach(function (b) {
+    var x = FL.X0 + b.from * FL.COLW, w = (b.to - b.from + 1) * FL.COLW;
+    if (b.st) { si++; if (si % 2) s += '<rect x="' + x + '" y="' + lanesTop + '" width="' + w + '" height="' + fl.lanes.length * FL.LANEH + '" fill="#1E2761" opacity="0.045"/>'; }
+    s += '<g class="fband"' + (b.st ? ' data-act="nav" data-id="' + b.st.id + '"' : '') + '><title>' + (b.st ? 'Open this stage in the structured view' : esc(b.label)) + '</title><rect x="' + x + '" y="' + bandY + '" width="' + w + '" height="24" fill="' + (b.st ? b.st._color : '#6b7280') + '" stroke="#fff"/>' + textLines(wrap(b.label, Math.floor(w / 6.4), 1), x + w / 2, bandY + 12, b.st ? 11 : 10, 12, 'middle', b.st ? '#fff' : '#e5e7eb', 'bold') + '</g>';
+    s += '<line x1="' + x + '" y1="' + (bandY + 24) + '" x2="' + x + '" y2="' + (H - 20) + '" stroke="#8899bb" stroke-dasharray="6,3" opacity=".6"/>';
+  });
+  // edges
+  var chanY = function (e) { return chanTop + 10 + e.level * 15; };
+  var offCount = {};
+  fl.edges.forEach(function (e) {
+    var a = e.from, b = e.to, da = dims(a), db = dims(b), pts, col = e.kind === 'loop' ? '#C41018' : e.kind === 'fast' ? '#1A6B40' : '#555', mk = e.kind === 'loop' ? 'mr' : e.kind === 'fast' ? 'mg' : 'ma', dash = (e.kind === 'loop' || e.kind === 'fast') ? ' stroke-dasharray="5,3"' : '';
+    var lblx, lbly, anchor = 'start';
+    if (e.adj) {
+      var x1 = cx(a) + da.hw, y1 = ly(a), x2 = cx(b) - db.hw, y2 = ly(b), mx = (x1 + x2) / 2;
+      pts = y1 === y2 ? [[x1, y1], [x2, y2]] : [[x1, y1], [mx, y1], [mx, y2], [x2, y2]];
+      lblx = x1 + 3; lbly = y1 - 6;
+    } else {
+      var k = (offCount[a.id] = (offCount[a.id] || 0) + 1) - 1, ox = (k - 1) * 8, cy = chanY(e);
+      var xs = cx(a) + ox, xt = cx(b) + (e.kind === 'fast' ? -6 : 6);
+      pts = [[xs, ly(a) - da.hh], [xs, cy], [xt, cy], [xt, ly(b) - db.hh]];
+      lblx = Math.min(xs, xt) + 4; lbly = cy - 3;
+    }
+    s += '<polyline points="' + pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="1.5"' + dash + ' marker-end="url(#' + mk + ')"/>';
+    if (e.label) s += '<text x="' + lblx + '" y="' + lbly + '" font-size="9" fill="' + col + '" text-anchor="' + anchor + '">' + esc(e.label) + '</text>';
+  });
+  // terminal exits
+  var tByD = {}; fl.terms.forEach(function (t) { (tByD[t.from.id] = tByD[t.from.id] || []).push(t); });
+  Object.keys(tByD).forEach(function (id) {
+    var list = tByD[id], d = fl.byId[id], x0 = cx(d), n = list.length, busY = chanTop - 6, cyy = railTop + 62;
+    list.forEach(function (t, i) {
+      var x = x0 + (i - (n - 1) / 2) * 76, sty = { stop: ['#F3E1E1', '#8c0a10'], pause: ['#FFF4D6', '#b07d00'], handoff: ['#E3F5EA', '#1A6B40'] }[t.kind] || ['#F3E1E1', '#8c0a10'];
+      s += '<polyline points="' + x0 + ',' + (ly(d) - 28) + ' ' + x0 + ',' + busY + ' ' + x + ',' + busY + ' ' + x + ',' + (cyy + 17) + '" fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#mw)"/>';
+      s += '<circle cx="' + x + '" cy="' + cyy + '" r="16" fill="' + sty[0] + '" stroke="' + sty[1] + '" stroke-width="4"/>' + textLines(wrap(t.label, 12, 3), x, cyy - 34, 9, 10.5, 'middle', '#333');
+    });
+  });
+  // nodes
+  nodes.forEach(function (n) {
+    var x = cx(n), y = ly(n), d = dims(n), cls = 'fnode' + (S.fsel === n.id ? ' sel' : ''), op = '';
+    if (n.kind === 'step' && !match(n.it)) op = ' opacity=".22"';
+    if (n.kind === 'decision' && !noFilter() && Fl.role && n.d.owner !== Fl.role) op = ' opacity=".35"';
+    s += '<g class="' + cls + '" id="fn-' + n.id + '" data-act="node" data-id="' + n.id + '"' + op + '>';
+    if (n.kind === 'step') {
+      s += '<rect class="nshape" x="' + (x - d.hw) + '" y="' + (y - d.hh) + '" width="' + (2 * d.hw) + '" height="' + (2 * d.hh) + '" rx="6" fill="' + nodeFill(n, maxes) + '" stroke="' + nodeStroke(n) + '" stroke-width="1.5"/>';
+      s += textLines(wrap((n.it.interface ? '\u25B2 ' : '') + n.label, 19, 4), x, y - (S.label ? 6 : 0), 10.5, 12);
+      if (S.label === 'sys') s += textLines(wrap(n.it._systemsList || Object.keys(n.it._systems).map(sysName).join(', ') || 'no system', 26, 1), x, y + 24, 8.5, 10, 'middle', '#0747a6');
+      if (S.label === 'role') s += textLines([role(roleOf(n.it)).short], x, y + 24, 8.5, 10, 'middle', '#0747a6');
+      var bx = x + d.hw, by = y - d.hh - 7, a = n.it._agg, bl = [];
+      if (a.q) bl.push(['q', a.q, '#6554c0']); if (a.idea) bl.push(['i', a.idea, '#d9a900']); if (a.pain) bl.push(['p', a.pain, '#de350b']);
+      bl.forEach(function (b, i) { var px = bx - 22 - i * 25; s += '<rect x="' + px + '" y="' + (by - 8) + '" width="23" height="15" rx="7" fill="' + b[2] + '"/><text x="' + (px + 11.5) + '" y="' + (by + 0.5) + '" font-size="9" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">' + ({ p: '\u26A0', i: '\u2605', q: '?' }[b[0]]) + b[1] + '</text>'; });
+      arr(n.it.outputs).slice(0, 2).forEach(function (o, i, all) { s += outputDoc(x, y + d.hh, o, i, all.length); });
+    } else if (n.kind === 'decision') {
+      s += '<polygon class="nshape" points="' + x + ',' + (y - 28) + ' ' + (x + 28) + ',' + y + ' ' + x + ',' + (y + 28) + ' ' + (x - 28) + ',' + y + '" fill="#D6E7F8" stroke="#3A6EA5" stroke-width="2"/><path d="M' + (x - 7.5) + ',' + (y - 7.5) + ' L' + (x + 7.5) + ',' + (y + 7.5) + ' M' + (x + 7.5) + ',' + (y - 7.5) + ' L' + (x - 7.5) + ',' + (y + 7.5) + '" stroke="#3A6EA5" stroke-width="2.5"/>';
+      s += textLines(wrap('\u25C6 ' + n.label, 16, 3), x, y + 46, 10, 11.5, 'middle', '#2B2B2B', 'bold');
+    } else {
+      var isEnd = n.kind === 'end';
+      s += '<circle class="nshape" cx="' + x + '" cy="' + y + '" r="17" fill="' + (isEnd ? '#E3F5EA' : '#fff') + '" stroke="' + (isEnd ? '#1A6B40' : '#1A6B40') + '" stroke-width="' + (isEnd ? 4 : 2) + '"/>' + textLines(wrap(n.label, 16, 3), x, y + 34, 9.5, 11, 'middle', '#333');
+      arr(n.outputs).slice(0, 2).forEach(function (o, i, all) { s += outputDoc(x, y - 17, o, i, all.length, true); });
+    }
+    s += '</g>';
+  });
+  flow.W = W; flow.H = H; flow.pos = function (n) { return { x: cx(n), y: ly(n) }; };
+  return s;
+}
+function outputDoc(x, yb, o, i, total, above) {
+  var label = o.label || o, ox = x + (total > 1 ? (i - 0.5) * 66 : 0), top = above ? yb - 56 : yb + 14;
+  var line = '<line x1="' + x + '" y1="' + yb + '" x2="' + ox + '" y2="' + (above ? top + 40 : top) + '" stroke="#1A6B40" stroke-dasharray="3,2"/><use href="#doc" transform="translate(' + (ox - 15) + ',' + top + ')"/>';
+  if (above) return line + textLines(['OUTPUT'], ox + 20, top + 12, 8.5, 10, 'start', '#1A6B40', 'bold') + textLines(wrap(label, 14, 2), ox + 20, top + 28, 8.5, 10, 'start', '#1A6B40');
+  return line + textLines(['OUTPUT'], ox, top + 50, 8.5, 10, 'middle', '#1A6B40', 'bold') + textLines(wrap(label, 13, 2), ox, top + 62, 8.5, 10, 'middle', '#1A6B40');
+}
+function legendHTML() {
+  var c = S.color;
+  if (c === 'pain') return '<span class="li"><span class="lb" style="background:rgba(255,86,48,.85)"></span>More pain points</span><span class="li"><span class="lb" style="background:#F4F5F7"></span>None</span>';
+  if (c === 'idea') return '<span class="li"><span class="lb" style="background:rgba(246,201,0,.85)"></span>More ideas</span><span class="li"><span class="lb" style="background:#F4F5F7"></span>None</span>';
+  if (c === 'q') return '<span class="li"><span class="lb" style="background:rgba(101,84,192,.85)"></span>More open questions</span><span class="li"><span class="lb" style="background:#F4F5F7"></span>None</span>';
+  if (c === 'mode') return '<span class="li"><span class="lb" style="background:#FFD9D2"></span>Mostly manual</span><span class="li"><span class="lb" style="background:#D9E8FF"></span>Mostly system-supported</span><span class="li"><span class="lb" style="background:#D4F5E2"></span>Mostly automated</span>';
+  return '<span class="li"><span class="lb" style="background:#EFEFEF"></span>Step (L3)</span><span class="li"><span class="lb" style="background:#F8DDF0;border-color:#B0589A"></span>&#9650; Key zone interface</span><span class="li">&#9670; Decision gate</span><span class="li"><span style="background:#de350b;color:#fff;border-radius:7px;padding:0 4px;font-size:9px">&#9888;n</span><span style="background:#d9a900;color:#fff;border-radius:7px;padding:0 4px;font-size:9px">&#9733;n</span><span style="background:#6554c0;color:#fff;border-radius:7px;padding:0 4px;font-size:9px">?n</span> pain / ideas / questions</span><span class="li" style="color:#C41018">- - loop back</span><span class="li" style="color:#1A6B40">- - fast track</span>';
+}
+
+/* ---------- flow drawer ---------- */
+function drawerHTML() {
+  var n = S.fsel && flow.byId[S.fsel];
+  if (!n) return '';
+  var h = '';
+  if (n.kind === 'step') {
+    var t = n.it, st = t._parent;
+    h += '<div class="dh"><div class="row"><div><span class="lv">L3 step</span> <span class="rchip">' + esc(st.code || st.name) + ': ' + esc(st.name) + '</span><h3>' + esc(lbl(t)) + '</h3></div><button class="x" data-act="close">&times;</button></div><div class="dacts">' + structBtn(t.id) + '</div></div><div class="db">' + blocks(t);
+    if (t.activities.length) {
+      h += '<div class="sec-l" style="margin-top:12px">Activity sequence (L4)</div><div class="mini-flow">' + t.activities.map(function (a) { return '<span class="mf" data-act="ffocus" data-id="' + a.id + '">' + esc(lbl(a)) + '</span>'; }).join('') + '</div>';
+      h += '<div class="sec-l">L4 activities &rarr; L5 tasks</div>';
+      h += t.activities.map(function (a) {
+        var open = S.ffocus === a.id || (S.ffocus && items[S.ffocus] && items[S.ffocus]._parent === a);
+        return '<details class="task' + dimc(a) + (S.ffocus === a.id ? ' hl' : '') + '" id="df-' + a.id + '"' + (open ? ' open' : '') + '><summary><span class="tcode" style="background:#253858">L4</span><span class="tn">' + esc(lbl(a)) + '</span>' + badges(a) + '</summary><div class="tbody">' + blocks(a) +
+          '<div class="sec-l" style="margin-top:6px">L5 tasks (' + a.tasks.length + ')</div>' + a.tasks.map(function (k) { return '<details class="task' + dimc(k) + (S.ffocus === k.id ? ' hl' : '') + '" id="df-' + k.id + '"' + (S.ffocus === k.id ? ' open' : '') + '><summary><span class="tcode">L5</span><span class="tn">' + esc(lbl(k)) + '</span>' + badges(k) + '</summary><div class="tbody">' + blocks(k) + '<div class="dacts">' + structBtn(k.id, 'Open task in structured view &#8599;') + '</div></div></details>'; }).join('') +
+          '<div class="dacts">' + structBtn(a.id, 'Open activity in structured view &#8599;') + '</div></div></details>';
+      }).join('');
+    }
+    h += '</div>';
+  } else if (n.kind === 'decision') {
+    var d = n.d, stg = items[d.after] || items[d.before];
+    h += '<div class="dh"><div class="row"><div><span class="lv" style="background:#6554c0">Decision gate</span><h3>&#9670; ' + esc(d.name) + '</h3></div><button class="x" data-act="close">&times;</button></div><div class="dacts">' + (stg ? structBtn(stg.id, 'Open adjacent stage in structured view &#8599;') : '') + '</div></div><div class="db"><div class="metarow">' + roleChip(d.owner) + '</div><div class="adesc">' + esc(d.question || '') + '</div>' +
+      (d.criteria.length ? section('', 'Decision criteria', '<div class="io">' + d.criteria.map(function (c) { return '&bull; ' + esc(c); }).join('<br>') + '</div>') : '') +
+      section('', 'Possible outcomes', '<div class="opts">' + d.options.map(function (o) { return '<span class="opt o-' + esc(o.kind || 'forward') + '">' + esc(o.label) + '</span>'; }).join('') + '</div>') +
+      blocks(Object.assign({ _level: 2, painPoints: arr(d.painPoints).map(normPain), ideas: arr(d.ideas).map(normIdea), questions: arr(d.questions), systems: arr(d.systems), mode: 'manual' }, {})).replace(/<div class="metarow">.*?<\/div>/, '') + '</div>';
+  } else {
+    h += '<div class="dh"><div class="row"><div><span class="lv" style="background:#00875a">' + (n.kind === 'end' ? 'End event' : 'Start event') + '</span><h3>' + esc(n.label) + '</h3></div><button class="x" data-act="close">&times;</button></div></div><div class="db"><div class="adesc">' + esc(n.description || '') + '</div></div>';
+  }
+  return h;
+}
+
+/* ---------- render ---------- */
+function render() {
+  var struct = S.view === 'structured';
+  $('#vStruct').style.display = struct ? 'flex' : 'none';
+  $('#vFlow').style.display = struct ? 'none' : 'flex';
+  document.querySelectorAll('.vbtn').forEach(function (b) { b.classList.toggle('on', b.dataset.id === S.view); });
+  if (struct) {
+    if (S.stage !== 'overview' && !items[S.stage]) S.stage = 'overview';
+    var path = S.task ? items[S.task] : S.act ? items[S.act] : S.step ? items[S.step] : items[S.stage];
+    while (path) { S.tree[path.id] = 1; path = path._parent; }
+    $('#side').innerHTML = treeHTML();
+    $('#main').innerHTML = S.stage === 'overview' ? overviewHTML() : stageHTML(items[S.stage]);
+  } else {
+    $('#fsvg').innerHTML = flowSVG();
+    $('#fsvg').setAttribute('viewBox', '0 0 ' + flow.W + ' ' + flow.H);
+    $('#fsvg').setAttribute('width', Math.round(flow.W * S.zoom)); $('#fsvg').setAttribute('height', Math.round(flow.H * S.zoom));
+    $('#zlbl').textContent = Math.round(S.zoom * 100) + '%';
+    $('#flegend').innerHTML = legendHTML();
+    var dr = $('#drawer'), dh = drawerHTML();
+    dr.className = dh ? 'on' : ''; dr.innerHTML = dh;
+  }
+  writeHash();
+}
+function writeHash() {
+  var p = ['v=' + S.view];
+  if (S.view === 'structured') { p.push('st=' + S.stage); if (S.step) p.push('sp=' + S.step); if (S.act) p.push('a=' + S.act); if (S.task) p.push('t=' + S.task); }
+  else if (S.fsel) p.push('f=' + S.fsel);
+  try { history.replaceState(null, '', '#' + p.join('&')); } catch (e) { /* file protocol may block */ }
+}
+function readHash() {
+  var h = location.hash.replace(/^#/, ''); if (!h) return;
+  var o = {}; h.split('&').forEach(function (kv) { var a = kv.split('='); o[a[0]] = decodeURIComponent(a[1] || ''); });
+  if (o.v === 'flow') { S.view = 'flow'; if (o.f && flow.byId[o.f]) S.fsel = o.f; }
+  else if (o.st) { S.stage = o.st; S.step = o.sp || null; S.act = o.a || null; S.task = o.t || null; }
+}
+function scrollToEl(id, block) { var el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: block || 'center' }); }
+
+/* ---------- navigation ---------- */
+function goStruct(id) {
+  var it = items[id];
+  S.view = 'structured'; S.step = null; S.act = null; S.task = null;
+  if (id === 'overview') { S.stage = 'overview'; render(); window.scrollTo(0, 0); return; }
+  if (it) {
+    var l = it._level, c = it;
+    if (l === 5) { S.task = c.id; c = c._parent; l = 4; }
+    if (l === 4) { S.act = c.id; c = c._parent; l = 3; }
+    if (l === 3) { S.step = c.id; c = c._parent; }
+    S.stage = c.id;
+  } else if (decisions[id]) { S.stage = decisions[id].after || decisions[id].before || 'overview'; }
+  render();
+  var target = S.task || S.act;
+  if (target) setTimeout(function () { scrollToEl('el-' + target, 'start'); }, 40); else window.scrollTo(0, 0);
+}
+function nodeFor(id) {
+  if (decisions[id]) return flow.nodes.filter(function (n) { return n.kind === 'decision' && n.ref === id; })[0];
+  var it = items[id];
+  if (!it) return flow.byId[id] || null;
+  if (it._level === 2) { var first = it.steps[0]; return first ? flow.byId[first.id] : null; }
+  while (it._level > 3) it = it._parent;
+  return flow.byId[it.id] || null;
+}
+function goFlow(id) {
+  var n = nodeFor(id);
+  S.view = 'flow';
+  S.fsel = n ? n.id : S.fsel;
+  S.ffocus = (items[id] && items[id]._level >= 4) ? id : null;
+  render();
+  if (n) setTimeout(function () {
+    var p = flow.pos(n), sc = $('#fscroll');
+    sc.scrollTo({ left: Math.max(0, p.x * S.zoom - sc.clientWidth / 2 + (sc.clientWidth > 900 ? 0 : 0)), top: Math.max(0, p.y * S.zoom - sc.clientHeight / 2), behavior: 'smooth' });
+    var g = document.getElementById('fn-' + n.id); if (g) { g.classList.add('pulse'); setTimeout(function () { g.classList.remove('pulse'); }, 2800); }
+    if (S.ffocus) scrollToEl('df-' + S.ffocus, 'center');
+  }, 60);
+}
+function setZoom(z) { S.zoom = Math.max(0.3, Math.min(1.6, z)); render(); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]'); if (!t) return;
+  var act = t.dataset.act, id = t.dataset.id;
+  if (act === 'view') { S.view = id; render(); }
+  else if (act === 'nav') { goStruct(id); }
+  else if (act === 'struct') { goStruct(id); }
+  else if (act === 'flow') { goFlow(id); }
+  else if (act === 'node') { S.fsel = id; S.ffocus = null; render(); }
+  else if (act === 'close') { S.fsel = null; render(); }
+  else if (act === 'ffocus') { S.ffocus = id; render(); scrollToEl('df-' + id, 'center'); }
+  else if (act === 'step') { S.step = (S.step === id) ? null : id; S.act = null; S.task = null; render(); }
+  else if (act === 'mode') { S.mode = id; render(); }
+  else if (act === 'card') {
+    var open = S.act === id; S.act = open ? null : id; S.task = null;
+    document.querySelectorAll('.acard.open').forEach(function (c) { c.classList.remove('open'); });
+    if (!open) { var c = document.getElementById('el-' + id); if (c) c.classList.add('open'); }
+    writeHash(); $('#side').innerHTML = treeHTML();
+  }
+  else if (act === 'tg') { S.tree[id] = S.tree[id] ? 0 : 1; t.closest('li').classList.toggle('open', !!S.tree[id]); }
+  else if (act === 'sys') { Fl.sys = id; $('#fSys').value = id; render(); }
+  else if (act === 'rolecell') { Fl.role = t.dataset.role; $('#fRole').value = Fl.role; goStruct(id); }
+  else if (act === 'zoom') { if (id === 'in') setZoom(S.zoom + 0.1); else if (id === 'out') setZoom(S.zoom - 0.1); else setZoom(($('#fscroll').clientWidth - 20) / flow.W); }
+  else if (act === 'clear') { Fl = { role: '', sys: '', lens: '', q: '' }; $('#fq').value = ''; $('#fRole').value = ''; $('#fSys').value = ''; $('#fLens').value = ''; render(); }
+});
+$('#fRole').addEventListener('change', function (e) { Fl.role = e.target.value; render(); });
+$('#fSys').addEventListener('change', function (e) { Fl.sys = e.target.value; render(); });
+$('#fLens').addEventListener('change', function (e) { Fl.lens = e.target.value; render(); });
+$('#fq').addEventListener('input', function (e) { Fl.q = e.target.value.trim().toLowerCase(); render(); });
+$('#fColor').addEventListener('change', function (e) { S.color = e.target.value; render(); });
+$('#fSysLbl').addEventListener('change', function (e) { S.label = e.target.value; render(); });
+
+/* ---------- init ---------- */
+function init() {
+  var meta = M.meta || {}; M.meta = meta;
+  $('#tTitle').textContent = meta.title || 'As-Is Process Navigator';
+  $('#tSub').textContent = meta.subtitle || '';
+  document.title = meta.title || 'As-Is Process Navigator';
+  if (meta.note) { var nb = $('#noteBar'); nb.textContent = meta.note; nb.style.display = 'block'; }
+  var ro = '<option value="">All</option>' + Object.keys(roles).map(function (r) { return '<option value="' + esc(r) + '">' + esc(roles[r].name) + '</option>'; }).join('');
+  $('#fRole').innerHTML = ro;
+  var us = {}; allItems.forEach(function (i) { i.systems.forEach(function (s) { us[s] = 1; }); });
+  $('#fSys').innerHTML = '<option value="">All</option>' + Object.keys(us).sort(function (a, b) { return sysName(a).localeCompare(sysName(b)); }).map(function (s) { return '<option value="' + esc(s) + '">' + esc(sysName(s)) + '</option>'; }).join('');
+  buildFlow(); readHash(); render();
+}
+init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>As-Is Process Navigator · Process Studio Skill</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#21406B;--ink:#0F1E3D;--ink-2:#575757;--ink-3:#8F8F8F;
+  --line-2:#E6E6E6;--cool:#F4F4F4;--white:#ffffff;
+  --navy-08:rgba(33,64,107,.08);--navy-15:rgba(33,64,107,.15);--navy-30:rgba(33,64,107,.30);
+  --green:#198038;--amber:#D97706;--red:#DA1E28;--violet:#6554C0;
+  --sh:0 2px 10px rgba(0,0,0,.05),0 8px 30px rgba(0,0,0,.04);--r:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#EBF1F7;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.slide-canvas{width:100%;max-width:1380px;background:var(--white);border-radius:12px;box-shadow:0 20px 60px rgba(15,30,61,.12);border:1px solid var(--line-2);overflow:hidden;display:flex;flex-direction:column}
+.slide-header{padding:26px 40px 18px;background:linear-gradient(135deg,#ffffff 0%,#F4F7FB 100%);border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);margin-bottom:6px}
+.kicker::before{content:"";width:18px;height:2px;background:currentColor}
+.h1-title{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.h1-sub{font-size:15px;font-weight:500;color:var(--ink-2);margin-top:4px}
+.header-badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:6px 14px;border-radius:999px;background:var(--navy-08);color:var(--navy);border:1px solid var(--navy-15);white-space:nowrap}
+.slide-body{padding:24px 40px;display:grid;grid-template-columns:1fr 1.7fr 1.15fr;gap:22px}
+.col-card{background:var(--cool);border:1px solid var(--line-2);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px}
+.col-card.accent{background:linear-gradient(180deg,#F4F7FB 0%,#ffffff 100%);border:1.5px solid var(--navy-30);box-shadow:var(--sh)}
+.card-tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy)}
+.card-title{font-size:17px;font-weight:700;line-height:1.2}
+.box{background:var(--white);border:1px solid var(--line-2);border-radius:6px;padding:11px 13px;display:flex;gap:11px;align-items:flex-start}
+.ib{width:32px;height:32px;border-radius:8px;background:var(--navy-08);color:var(--navy);display:grid;place-items:center;font-size:15px;font-weight:700;flex-shrink:0}
+.box b{display:block;font-size:12.5px;font-weight:700}
+.box span{display:block;font-size:11px;color:var(--ink-2);line-height:1.35;margin-top:2px}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.view{background:var(--white);border:1px solid var(--line-2);border-radius:6px;padding:10px}
+.vh{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.vh em{font-style:normal;font-size:9.5px;color:var(--ink-3);letter-spacing:0;text-transform:none;font-weight:600}
+.view svg{width:100%;height:auto;display:block}
+.link-row{display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;font-weight:700;color:var(--navy);background:var(--navy-08);border:1px dashed var(--navy-30);border-radius:6px;padding:7px 10px}
+.levels{display:flex;gap:6px;flex-wrap:wrap}
+.lv{font-size:10.5px;font-weight:700;color:#fff;border-radius:4px;padding:3px 8px}
+.lens{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lens div{background:var(--white);border:1px solid var(--line-2);border-radius:6px;padding:8px 6px;text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.lens div i{display:block;font-style:normal;font-size:18px;font-weight:800;margin-bottom:2px}
+.steps{display:flex;flex-direction:column;gap:9px}
+.step{display:flex;gap:11px;align-items:flex-start;background:var(--white);border:1px solid var(--line-2);border-radius:6px;padding:10px 12px}
+.sn{width:26px;height:26px;border-radius:6px;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}
+.step b{font-size:12.5px;display:block}
+.step span{font-size:11px;color:var(--ink-2);display:block;margin-top:1px}
+.tag{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;display:inline-block;margin-top:4px;background:#eff6ff;color:#1d4ed8}
+.slide-footer{padding:14px 40px;background:#F4F7FB;border-top:1px solid var(--line-2);display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.foot-col{display:flex;gap:10px;align-items:center}
+.foot-col .ic{width:30px;height:30px;border-radius:50%;background:var(--navy-08);color:var(--navy);display:grid;place-items:center;font-size:13px;font-weight:bold;flex-shrink:0}
+.foot-col b{font-size:12px;display:block}
+.foot-col span{font-size:11px;color:var(--ink-2);display:block}
+.made{text-align:center;font-size:10.5px;color:var(--ink-3);padding:8px;border-top:1px solid var(--line-2)}
+</style>
+</head>
+<body>
+<div class="slide-canvas">
+
+  <header class="slide-header">
+    <div>
+      <div class="kicker">Process Studio Skillathon &bull; Bring Your Own Skill (BYOS)</div>
+      <h1 class="h1-title">As-Is Process Navigator</h1>
+      <div class="h1-sub">One process document in. <strong>One navigable HTML</strong> out: structured L1&ndash;L5 and a swimlane flow, linked both ways.</div>
+    </div>
+    <div class="header-badges">
+      <span class="chip">L1&ndash;L5 decomposition</span>
+      <span class="chip">Pain points &amp; ideas</span>
+      <span class="chip">Domain-agnostic</span>
+    </div>
+  </header>
+
+  <main class="slide-body">
+
+    <!-- 1 Input -->
+    <div class="col-card">
+      <div class="card-tag">01 &bull; Input</div>
+      <div class="card-title">Any process document</div>
+      <div class="box"><div class="ib">&#9776;</div><div><b>SOP, workshop or interview notes</b><span>Process maps, pain-point lists, role descriptions. No special format needed.</span></div></div>
+      <div class="box"><div class="ib">{ }</div><div><b>Model written by the AI</b><span>Stages, steps, activities, tasks, roles, systems, pain points, ideas, open questions, decision gates. Checked before rendering.</span></div></div>
+      <div class="box"><div class="ib">&#10003;</div><div><b>Validated, then rendered</b><span>A bundled script lists every problem (unknown role, duplicate id, missing loop target) so the AI can fix and retry.</span></div></div>
+    </div>
+
+    <!-- 2 Two views -->
+    <div class="col-card accent">
+      <div class="card-tag">02 &bull; Navigator</div>
+      <div class="card-title">Two views, one click apart</div>
+      <div class="views">
+        <div class="view">
+          <div class="vh">Structured view <em>who, what, where it hurts</em></div>
+          <svg viewBox="0 0 250 168" font-family="sans-serif">
+            <rect x="0" y="0" width="70" height="168" rx="4" fill="#F4F7FB" stroke="#E6E6E6"/>
+            <rect x="6" y="8" width="58" height="11" rx="3" fill="#21406B"/><text x="10" y="16.5" font-size="7" fill="#fff" font-weight="bold">L1 Process</text>
+            <rect x="14" y="24" width="50" height="10" rx="3" fill="#DCE6F5"/><text x="18" y="31.5" font-size="6.5" fill="#21406B">L2 Stage 1</text>
+            <rect x="22" y="38" width="42" height="10" rx="3" fill="#EAF0FA"/><text x="26" y="45.5" font-size="6.5" fill="#21406B">L3 Step</text>
+            <rect x="30" y="52" width="34" height="10" rx="3" fill="#F4F7FB" stroke="#DCE6F5"/><text x="34" y="59.5" font-size="6.5" fill="#575757">L4 Activity</text>
+            <rect x="38" y="66" width="26" height="10" rx="3" fill="#fff" stroke="#DCE6F5"/><text x="41" y="73.5" font-size="6" fill="#575757">L5 Task</text>
+            <rect x="14" y="82" width="50" height="10" rx="3" fill="#DCE6F5"/><text x="18" y="89.5" font-size="6.5" fill="#21406B">L2 Stage 2</text>
+            <rect x="78" y="0" width="172" height="26" rx="4" fill="#21406B"/><text x="86" y="16" font-size="9" fill="#fff" font-weight="bold">Stage 1 &#183; owner, outputs</text>
+            <rect x="78" y="32" width="82" height="62" rx="4" fill="#fff" stroke="#21406B"/>
+            <text x="85" y="45" font-size="8" font-weight="bold" fill="#0F1E3D">Step card</text>
+            <rect x="85" y="52" width="26" height="9" rx="4" fill="#FFEBE6"/><text x="89" y="59" font-size="6.5" fill="#BF2600" font-weight="bold">&#9888; 2</text>
+            <rect x="115" y="52" width="26" height="9" rx="4" fill="#FFF0B3"/><text x="119" y="59" font-size="6.5" fill="#7A4800" font-weight="bold">&#9733; 1</text>
+            <rect x="85" y="66" width="62" height="8" rx="3" fill="#E6E6E6"/><rect x="85" y="78" width="44" height="8" rx="3" fill="#E6E6E6"/>
+            <rect x="168" y="32" width="82" height="62" rx="4" fill="#F4F4F4" stroke="#E6E6E6"/>
+            <rect x="175" y="42" width="60" height="8" rx="3" fill="#E6E6E6"/><rect x="175" y="56" width="40" height="8" rx="3" fill="#E6E6E6"/>
+            <rect x="78" y="100" width="172" height="68" rx="4" fill="#F7FAFF" stroke="#DCE6F5"/>
+            <text x="85" y="113" font-size="7.5" font-weight="bold" fill="#21406B">Pain &#183; ideas &#183; questions &#183; systems</text>
+            <rect x="85" y="119" width="158" height="9" rx="3" fill="#FFEBE6"/><rect x="85" y="132" width="140" height="9" rx="3" fill="#FFF0B3"/><rect x="85" y="145" width="120" height="9" rx="3" fill="#EAE6FF"/>
+          </svg>
+        </div>
+        <div class="view">
+          <div class="vh">Flow view <em>hand-overs, gates, loops</em></div>
+          <svg viewBox="0 0 250 168" font-family="sans-serif">
+            <defs><marker id="a" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto"><polygon points="0 0,6 2.5,0 5" fill="#555"/></marker><marker id="r" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto"><polygon points="0 0,6 2.5,0 5" fill="#C41018"/></marker></defs>
+            <rect x="0" y="14" width="250" height="52" fill="#F2F5FC" stroke="#aab4cc"/><rect x="0" y="66" width="250" height="52" fill="#EEF0FF" stroke="#aab4cc"/><rect x="0" y="118" width="250" height="50" fill="#FFF3F3" stroke="#aab4cc"/>
+            <rect x="0" y="0" width="120" height="13" fill="#21406B"/><text x="60" y="9.5" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">Stage 1</text>
+            <rect x="121" y="0" width="129" height="13" fill="#2F5C99"/><text x="185" y="9.5" font-size="7" fill="#fff" text-anchor="middle" font-weight="bold">Stage 2</text>
+            <rect x="10" y="26" width="48" height="28" rx="4" fill="#EFEFEF" stroke="#8A8A8A"/><text x="34" y="43" font-size="7" text-anchor="middle">1.1 Step</text>
+            <rect x="66" y="78" width="48" height="28" rx="4" fill="#F8DDF0" stroke="#B0589A"/><text x="90" y="95" font-size="7" text-anchor="middle">&#9650; 1.2 Step</text>
+            <polygon points="140,92 154,78 168,92 154,106" fill="#D6E7F8" stroke="#3A6EA5" stroke-width="1.5"/><text x="154" y="95" font-size="9" text-anchor="middle" fill="#3A6EA5">&#215;</text>
+            <rect x="184" y="130" width="48" height="28" rx="4" fill="#EFEFEF" stroke="#8A8A8A"/><text x="208" y="147" font-size="7" text-anchor="middle">2.1 Step</text>
+            <polyline points="58,40 90,40 90,78" fill="none" stroke="#555" stroke-width="1.2" marker-end="url(#a)"/>
+            <polyline points="114,92 140,92" fill="none" stroke="#555" stroke-width="1.2" marker-end="url(#a)"/>
+            <polyline points="168,92 208,92 208,130" fill="none" stroke="#555" stroke-width="1.2" marker-end="url(#a)"/>
+            <polyline points="154,78 154,70 34,70 34,54" fill="none" stroke="#C41018" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#r)"/>
+            <rect x="14" y="22" width="14" height="8" rx="4" fill="#DE350B"/><text x="21" y="28" font-size="5.5" fill="#fff" text-anchor="middle" font-weight="bold">&#9888;2</text>
+          </svg>
+        </div>
+      </div>
+      <div class="link-row">&#8644; &ldquo;Show in flow view&rdquo; &nbsp;&bull;&nbsp; &ldquo;Open in structured view&rdquo; on every step, activity, task and gate</div>
+      <div class="levels">
+        <span class="lv" style="background:#172b4d">L1 Process</span><span class="lv" style="background:#0052cc">L2 Stage</span><span class="lv" style="background:#0747a6">L3 Step</span><span class="lv" style="background:#253858">L4 Activity</span><span class="lv" style="background:#5e6c84">L5 Task</span>
+      </div>
+      <div class="lens">
+        <div><i style="color:var(--red)">&#9888;</i>Pain points</div>
+        <div><i style="color:var(--amber)">&#9733;</i>Ideas captured</div>
+        <div><i style="color:var(--violet)">?</i>Open questions</div>
+      </div>
+    </div>
+
+    <!-- 3 How it works -->
+    <div class="col-card">
+      <div class="card-tag">03 &bull; How it runs</div>
+      <div class="card-title">Four steps, no code</div>
+      <div class="steps">
+        <div class="step"><div class="sn">1</div><div><b>Read the document</b><span>Decompose into stages, steps, activities, tasks. Only what the document states.</span></div></div>
+        <div class="step"><div class="sn">2</div><div><b>Write model.json</b><span>Roles, systems, pain points, ideas, questions, decision gates, optional flow.</span></div></div>
+        <div class="step"><div class="sn">3</div><div><b>Run the bundled script</b><span>Validates, fills defaults, builds the flow if none given.</span></div></div>
+        <div class="step"><div class="sn">4</div><div><b>Deliver the navigator</b><span>One self-contained file, opens offline in any browser.</span><span class="tag">process-navigator.html</span></div></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="slide-footer">
+    <div class="foot-col"><div class="ic">&#8644;</div><div><b>Navigate both ways</b><span>Structured detail &#8596; visual flow</span></div></div>
+    <div class="foot-col"><div class="ic">&#9888;</div><div><b>Pain points in context</b><span>Counts roll up to every level</span></div></div>
+    <div class="foot-col"><div class="ic">&#9881;</div><div><b>Domain-agnostic</b><span>No process content in the skill</span></div></div>
+    <div class="foot-col"><div class="ic">&#10003;</div><div><b>Validated input</b><span>Errors listed so the AI self-corrects</span></div></div>
+  </footer>
+  <div class="made">Made with IBM Bob</div>
+</div>
+</body>
+</html>

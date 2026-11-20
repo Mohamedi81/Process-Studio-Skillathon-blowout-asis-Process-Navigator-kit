@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "title": "Employee Onboarding - As-Is Navigator",
+    "subtitle": "Fictional example for the as-is-process-navigator skill",
+    "processName": "Employee Onboarding (fictional)",
+    "eyebrow": "As-is process",
+    "description": "Fictional example. From signed offer to a productive first month at a made-up company. Replace every value with the real process.",
+    "note": "Illustrative fictional data. Not a real process."
+  },
+  "roles": [
+    { "id": "hr", "name": "HR Operations", "short": "HR Ops", "color": "#0052cc" },
+    { "id": "mgr", "name": "Hiring Manager", "short": "Manager", "color": "#00875a" },
+    { "id": "it", "name": "IT Service Desk", "short": "IT", "color": "#c41018" }
+  ],
+  "systems": [
+    { "id": "hris", "name": "HR system" },
+    { "id": "ticket", "name": "Ticketing tool" },
+    { "id": "mail", "name": "E-mail" }
+  ],
+  "decisions": [
+    {
+      "id": "d-ready",
+      "name": "Ready to start?",
+      "owner": "hr",
+      "after": "st-prep",
+      "question": "Are contract, equipment and access in place for day one?",
+      "criteria": ["Contract signed", "Laptop delivered", "Accounts created"],
+      "options": [
+        { "label": "Start as planned", "kind": "forward" },
+        { "label": "Fix gaps", "kind": "loop", "to": "step-equip" },
+        { "label": "Postpone start", "kind": "pause" },
+        { "label": "Candidate withdrew", "kind": "stop" }
+      ],
+      "painPoints": [{ "text": "Nobody owns the final readiness check.", "severity": "high" }],
+      "ideas": [{ "title": "Automatic readiness checklist", "text": "One status page that turns green when all items are done.", "type": "Automation" }],
+      "questions": ["Who may postpone a start date?"],
+      "systems": ["hris"]
+    }
+  ],
+  "stages": [
+    {
+      "id": "st-prep",
+      "code": "Stage 1",
+      "name": "Prepare",
+      "role": "hr",
+      "purpose": "Everything that must exist before the first day.",
+      "outputs": ["Onboarding file"],
+      "steps": [
+        {
+          "id": "step-contract",
+          "code": "1.1",
+          "name": "Issue contract",
+          "role": "hr",
+          "supportRoles": ["mgr"],
+          "mode": "system",
+          "duration": "2 days",
+          "description": "Create and send the employment contract.",
+          "systems": ["hris", "mail"],
+          "painPoints": [{ "text": "Contract data is typed twice.", "severity": "medium" }],
+          "ideas": [{ "title": "Pre-fill from offer", "text": "Copy offer data into the contract automatically.", "type": "Automation" }],
+          "outputs": ["Signed contract"],
+          "activities": [
+            {
+              "id": "act-draft",
+              "name": "Draft the contract",
+              "mode": "system",
+              "systems": ["hris"],
+              "tasks": [
+                { "id": "t-draft-1", "name": "Select the contract template", "mode": "manual" },
+                { "id": "t-draft-2", "name": "Enter salary and start date", "systems": ["hris"], "painPoints": ["Field validation is missing."] }
+              ]
+            },
+            {
+              "id": "act-send",
+              "name": "Send and track signature",
+              "mode": "manual",
+              "systems": ["mail"],
+              "tasks": [{ "id": "t-send-1", "name": "E-mail the contract and chase if unsigned", "mode": "manual" }]
+            }
+          ]
+        },
+        {
+          "id": "step-equip",
+          "code": "1.2",
+          "name": "Order equipment and access",
+          "role": "it",
+          "supportRoles": ["mgr"],
+          "mode": "manual",
+          "interface": true,
+          "duration": "5 days",
+          "description": "Laptop, accounts and building access.",
+          "systems": ["ticket"],
+          "painPoints": [{ "text": "Managers forget to request equipment, so laptops arrive late.", "severity": "high" }],
+          "questions": ["Who approves non-standard equipment?"],
+          "activities": [
+            {
+              "id": "act-request",
+              "name": "Raise the equipment request",
+              "role": "mgr",
+              "systems": ["ticket"],
+              "tasks": [{ "id": "t-req-1", "name": "Fill in the request form", "role": "mgr", "systems": ["ticket"] }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "st-first",
+      "code": "Stage 2",
+      "name": "First month",
+      "role": "mgr",
+      "purpose": "Make the new joiner productive.",
+      "steps": [
+        {
+          "id": "step-welcome",
+          "code": "2.1",
+          "name": "Welcome and orient",
+          "role": "mgr",
+          "supportRoles": ["hr"],
+          "mode": "manual",
+          "duration": "1 week",
+          "description": "Introductions, tour and first assignments.",
+          "ideas": [{ "title": "Buddy programme", "text": "Pair every joiner with a peer.", "type": "Process" }],
+          "activities": [
+            {
+              "id": "act-plan",
+              "name": "Agree the 30-day plan",
+              "tasks": [{ "id": "t-plan-1", "name": "Hold the plan meeting", "mode": "manual" }]
+            }
+          ]
+        },
+        {
+          "id": "step-review",
+          "code": "2.2",
+          "name": "30-day check-in",
+          "role": "hr",
+          "supportRoles": ["mgr"],
+          "mode": "system",
+          "duration": "1 day",
+          "description": "Collect feedback and close the onboarding.",
+          "systems": ["hris"],
+          "questions": ["Is the check-in mandatory for contractors?"],
+          "activities": [
+            {
+              "id": "act-feedback",
+              "name": "Collect feedback",
+              "systems": ["hris"],
+              "tasks": [{ "id": "t-fb-1", "name": "Send the feedback survey", "mode": "system", "systems": ["hris"] }]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "lanes": ["hr", "it", "mgr"],
+    "nodes": [
+      { "kind": "start", "id": "start", "label": "Offer accepted", "lane": "hr", "band": "Entry", "outputs": [{ "label": "Signed offer" }], "description": "The candidate has accepted the offer." },
+      { "kind": "step", "ref": "step-contract" },
+      { "kind": "step", "ref": "step-equip" },
+      { "kind": "decision", "ref": "d-ready" },
+      { "kind": "step", "ref": "step-welcome" },
+      { "kind": "step", "ref": "step-review" },
+      { "kind": "end", "id": "end", "label": "Onboarding closed", "lane": "hr", "band": "Exit" }
+    ]
+  }
+}
